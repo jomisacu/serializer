@@ -432,6 +432,8 @@ class XmlSerializationVisitor extends AbstractVisitor
             $attribute = 'xmlns';
             if ($prefix !== '') {
                 $attribute .= ':'.$prefix;
+            } elseif ($element->namespaceURI === $uri) {
+                continue;
             }
             $element->setAttributeNS('http://www.w3.org/2000/xmlns/', $attribute, $uri);
         }
