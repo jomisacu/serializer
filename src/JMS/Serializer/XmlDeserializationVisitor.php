@@ -155,7 +155,7 @@ class XmlDeserializationVisitor extends AbstractVisitor
                 return $this->result = array();
             }
 
-            return array();
+            return null;
         }
 
         switch (count($type['params'])) {
@@ -187,10 +187,11 @@ class XmlDeserializationVisitor extends AbstractVisitor
                     $this->result = &$result;
                 }
 
+
                 $nodes = $data->children($namespace)->$entryName;
                 foreach ($nodes as $v) {
                     $attrs = $v->attributes();
-                    if ( ! isset($attrs[$this->currentMetadata->xmlKeyAttribute])) {
+                    if (!isset($attrs[$this->currentMetadata->xmlKeyAttribute])) {
                         throw new RuntimeException(sprintf('The key attribute "%s" must be set for each entry of the map.', $this->currentMetadata->xmlKeyAttribute));
                     }
 

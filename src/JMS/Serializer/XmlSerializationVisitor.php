@@ -109,6 +109,9 @@ class XmlSerializationVisitor extends AbstractVisitor
 
     public function visitString($data, array $type, Context $context)
     {
+        if (null === $data) {
+            return;
+        }
 
         if (null !== $this->currentMetadata) {
             $doCData = $this->currentMetadata->xmlElementCData;
@@ -249,13 +252,15 @@ class XmlSerializationVisitor extends AbstractVisitor
 
             $this->setCurrentMetadata($metadata);
             $node = $this->navigator->accept($v, $metadata->type, $context);
+
             $this->revertCurrentMetadata();
+            if ($node !== null) {
+                if (!$node instanceof \DOMCharacterData) {
+                    throw new RuntimeException(sprintf('Unsupported value for property %s::$%s. Expected character data, but got %s.', $metadata->reflection->class, $metadata->reflection->name, is_object($node) ? get_class($node) : gettype($node)));
+                }
 
-            if ( ! $node instanceof \DOMCharacterData) {
-                throw new RuntimeException(sprintf('Unsupported value for property %s::$%s. Expected character data, but got %s.', $metadata->reflection->class, $metadata->reflection->name, is_object($node) ? get_class($node) : gettype($node)));
+                $this->currentNode->appendChild($node);
             }
-
-            $this->currentNode->appendChild($node);
 
             return;
         }
@@ -303,8 +308,7 @@ class XmlSerializationVisitor extends AbstractVisitor
         if ($addEnclosingElement) {
             $this->revertCurrentNode();
 
-            if ($element->hasChildNodes() || $element->hasAttributes()
-                || (isset($metadata->type['name']) && $metadata->type['name'] === 'array' && isset($metadata->type['params'][1]))) {
+            if ($element->hasChildNodes() || $element->hasAttributes() || ($node === null && $v !== null)) {
                 $this->currentNode->appendChild($element);
             }
         }
@@ -439,21 +443,20 @@ class XmlSerializationVisitor extends AbstractVisitor
 
     private function createElement($tagName, $namespace = null)
     {
-        if (null !== $namespace) {
-
-            if ($this->currentNode->isDefaultNamespace($namespace)) {
-                return $this->document->createElementNS($namespace, $tagName);
-            } else {
-                if (!$prefix = $this->currentNode->lookupPrefix($namespace)) {
-                    $prefix = 'ns-'.  substr(sha1($namespace), 0, 8);
-                }
-                return $this->document->createElementNS($namespace, $prefix . ':' . $tagName);
-            }
-
-
-        } else {
+        if (null === $namespace) {
             return $this->document->createElement($tagName);
         }
+
+        if ($this->currentNode->isDefaultNamespace($namespace)) {
+            return $this->document->createElementNS($namespace, $tagName);
+        }
+
+        if (!$prefix = $this->document->lookupPrefix($namespace)) {
+            $prefix = 'ns-'.  substr(sha1($namespace), 0, 8);
+            return $this->document->createElementNS($namespace, $prefix . ':' . $tagName);
+        }
+
+        return $this->document->createElement($prefix . ':' . $tagName);
     }
 
     private function setAttributeOnNode(\DOMElement $node, $name, $value, $namespace = null)
