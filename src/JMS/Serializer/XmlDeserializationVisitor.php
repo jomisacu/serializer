@@ -217,6 +217,7 @@ class XmlDeserializationVisitor extends AbstractVisitor
 
     public function visitProperty(PropertyMetadata $metadata, $data, Context $context)
     {
+
         $name = $this->namingStrategy->translateName($metadata);
 
         if ( ! $metadata->type) {
@@ -256,6 +257,7 @@ class XmlDeserializationVisitor extends AbstractVisitor
         }
 
         if ($metadata->xmlNamespace) {
+
             $node = $data->children($metadata->xmlNamespace)->$name;
             if (!$node->count()) {
                 return;
@@ -268,16 +270,13 @@ class XmlDeserializationVisitor extends AbstractVisitor
                 $prefix = uniqid('ns-');
                 $data->registerXPathNamespace($prefix, $namespaces['']);
                 $nodes = $data->xpath('./'.$prefix. ':'.$name );
-                if (empty($nodes)) {
-                    return;
-                }
-                $node = reset($nodes);
             } else {
-                if (!isset($data->$name)) {
-                    return;
-                }
-                $node = $data->$name;
+                $nodes = $data->xpath('./'. $name );
             }
+            if (empty($nodes)) {
+                return;
+            }
+            $node = reset($nodes);
         }
 
         $v = $this->navigator->accept($node, $metadata->type, $context);
