@@ -77,9 +77,10 @@ class Serializer implements SerializerInterface
             $context = new SerializationContext();
         }
 
+	    $self = $this;
         return $this->serializationVisitors->get($format)
-            ->map(function(VisitorInterface $visitor) use ($context, $data, $format) {
-                $this->visit($visitor, $context, $visitor->prepare($data), $format);
+            ->map(function(VisitorInterface $visitor) use ($context, $data, $format, $self) {
+                $self->visit($visitor, $context, $visitor->prepare($data), $format);
 
                 return $visitor->getResult();
             })
@@ -93,12 +94,13 @@ class Serializer implements SerializerInterface
             $context = new DeserializationContext();
         }
 
+	    $self = $this;
         return $this->deserializationVisitors->get($format)
-            ->map(function(VisitorInterface $visitor) use ($context, $data, $format, $type) {
+            ->map(function(VisitorInterface $visitor) use ($context, $data, $format, $type, $self) {
                 $preparedData = $visitor->prepare($data);
-                $navigatorResult = $this->visit($visitor, $context, $preparedData, $format, $this->typeParser->parse($type));
+                $navigatorResult = $self->visit($visitor, $context, $preparedData, $format, $self->typeParser->parse($type));
 
-                return $this->handleDeserializeResult($visitor->getResult(), $navigatorResult);
+                return $self->handleDeserializeResult($visitor->getResult(), $navigatorResult);
             })
             ->getOrThrow(new UnsupportedFormatException(sprintf('The format "%s" is not supported for deserialization.', $format)))
         ;
@@ -118,11 +120,11 @@ class Serializer implements SerializerInterface
         if (null === $context) {
             $context = new SerializationContext();
         }
-
+		$self = $this;
         return $this->serializationVisitors->get('json')
-            ->map(function(JsonSerializationVisitor $visitor) use ($context, $data) {
-                $this->visit($visitor, $context, $data, 'json');
-                $result = $this->convertArrayObjects($visitor->getRoot());
+            ->map(function(JsonSerializationVisitor $visitor) use ($context, $data, $self) {
+                $self->visit($visitor, $context, $data, 'json');
+                $result = $self->convertArrayObjects($visitor->getRoot());
 
                 if ( ! is_array($result)) {
                     throw new RuntimeException(sprintf(
@@ -151,12 +153,12 @@ class Serializer implements SerializerInterface
         if (null === $context) {
             $context = new DeserializationContext();
         }
-
+		$self = $this;
         return $this->deserializationVisitors->get('json')
-            ->map(function(JsonDeserializationVisitor $visitor) use ($data, $type, $context) {
-                $navigatorResult = $this->visit($visitor, $context, $data, 'json', $this->typeParser->parse($type));
+            ->map(function(JsonDeserializationVisitor $visitor) use ($data, $type, $context, $self) {
+                $navigatorResult = $self->visit($visitor, $context, $data, 'json', $self->typeParser->parse($type));
 
-                return $this->handleDeserializeResult($visitor->getResult(), $navigatorResult);
+                return $self->handleDeserializeResult($visitor->getResult(), $navigatorResult);
             })
             ->get()
         ;
